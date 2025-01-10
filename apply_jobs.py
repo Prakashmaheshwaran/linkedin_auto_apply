@@ -95,11 +95,20 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
         )
         print(f"Job ID {job_id}: Easy Apply modal loaded successfully.")
 
+        button_status, is_submit = handle_application_buttons(driver, modal)
+        print(f"Job ID {job_id}: Button clicked - {button_status}")
+        random_wait(1, 3)
+
+        if is_submit:
+            print(f"Job ID {job_id}: Application submitted successfully!")
+            return True
+
         # Step 3: Upload Resume
         resume_path = fetch_resume_from_webhook(job_url,job_details)
         if not upload_resume(driver, resume_path):
             print(f"Job ID {job_id}: Failed to upload resume. Aborting...")
-            return False
+            return True
+        
         print(f"Job ID {job_id}: Resume uploaded successfully.")
         random_wait(2, 4)
 
@@ -118,7 +127,7 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
 
                 # Answer questions dynamically
                 answer_questions(modal, answered_questions, driver)
-                print(f"Job ID {job_id}: Questions answered - {answered_questions}")
+                # print(f"Job ID {job_id}: Questions answered - {answered_questions}")
 
             except Exception as e:
                 print(f"Job ID {job_id}: Error processing application flow: {e}")
@@ -188,13 +197,13 @@ def main():
                 if easy_apply_button:
                     handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}")
             except Exception as e:
-                print()
+                print("error while appling easy apply.......")
 
-            if handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}"):
-                continue
+            # if handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}"):
+            #     continue
 
-            if handle_external_apply(driver, job_id):
-                continue
+            # if handle_external_apply(driver, job_id):
+            #     continue
 
             print(f"Job ID {job_id}: No apply buttons found. Skipping...")
             log_processed_id(processed_id_CSV, job_id)

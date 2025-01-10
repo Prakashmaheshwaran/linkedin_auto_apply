@@ -20,6 +20,7 @@ def setup_driver():
     options.add_argument(f"--profile-directory={chrome_profile_directory}")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-infobars")
+    options.add_argument("--start-maximized")
     options.add_argument("--disable-popup-blocking")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -62,7 +63,7 @@ def mimic_mouse_scroll(scroll_amount=-500, duration=0.5, repetitions=10, target_
             x = location['x'] + size['width'] // 2
             y = location['y'] + size['height'] // 2
             
-            pyautogui.moveTo(x, y + 300, duration=random.uniform(0.2, 0.5))
+            pyautogui.moveTo(x, y + 400, duration=random.uniform(0.2, 0.5))
             random_wait(0.5, 1.0)
 
         for i in range(repetitions):
@@ -238,12 +239,15 @@ def upload_resume(driver, resume_path: str) -> bool:
     
 # Sends the job description and page URL to the webhook and downloads the returned resume.
 def fetch_resume_from_webhook(page_url: str, job_description: str) -> str:
+    print("resume fetching called.....")
     payload = {"htmlBody": job_description, "pageUrl": page_url}
     retries = 3
 
     for _ in range(retries):
+        print ("Try number: ",_)
         try:
             response = requests.post(RESUME_WEBHOOK_URL, json=payload)
+            print(response.status_code)
             if response.status_code == 200:
                 with open(generated_resume_path, "wb") as file:
                     file.write(response.content)
@@ -278,9 +282,9 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
     actions = ActionChains(driver)
     all_questions = modal.find_elements(By.XPATH, ".//div[@data-test-form-element]")
 
-    print("\n--- Debug: Printing All Questions ---")
+    # print("\n--- Debug: Printing All Questions ---")
     for idx, question in enumerate(all_questions):
-        print(f"Question {idx + 1}: {question.text.strip()}")
+        # print(f"Question {idx + 1}: {question.text.strip()}")
 
         # 1. Handle Dropdown (Select) Questions
         select = try_xp(question, ".//select", False)
@@ -290,6 +294,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
             current_value = select_element.first_selected_option.text.strip()
 
             if current_value and current_value.lower() != "select an option":
+                continue
                 print(f"Dropdown '{label}' already filled with '{current_value}'. Skipping.")
             else:
                 answer = "Yes"
@@ -304,7 +309,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
                         answer = str(technology.get(tech_key, technology["default"]))
                 try:
                     select_element.select_by_visible_text(answer)
-                    print(f"Selected '{answer}' for dropdown '{label}'")
+                    # print(f"Selected '{answer}' for dropdown '{label}'")
                     questions_list.add((label, answer, "select"))
                 except Exception as e:
                     print(f"Error selecting dropdown '{label}': {e}. Waiting for intervention...")
@@ -318,6 +323,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
             selected = any(button.is_selected() for button in radio_buttons)
 
             if selected:
+                continue
                 print(f"Radio question '{label}' already answered. Skipping.")
             else:
                 answer = "Yes"
@@ -331,7 +337,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
                     button_label = try_xp(question, f".//label[@for='{button.get_attribute('id')}']", False).text.lower()
                     if answer.lower() in button_label:
                         actions.move_to_element(button).click().perform()
-                        print(f"Selected '{answer}' for radio question '{label}'")
+                        # print(f"Selected '{answer}' for radio question '{label}'")
                         questions_list.add((label, answer, "radio"))
                         break
             continue
@@ -341,6 +347,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
         if checkbox:
             label = try_xp(question, ".//label", False).text.lower() if try_xp(question, ".//label", False) else "Unknown"
             if checkbox.is_selected():
+                continue
                 print(f"Checkbox '{label}' already checked. Skipping.")
             else:
                 checked = False
@@ -351,7 +358,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
 
                 if checked:
                     checkbox.click()
-                    print(f"Checked '{label}' checkbox")
+                    # print(f"Checked '{label}' checkbox")
                     questions_list.add((label, "Checked", "checkbox"))
             continue
 
@@ -362,6 +369,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
             label = try_xp(question, ".//label", False).text.lower() if try_xp(question, ".//label", False) else "Unknown"
 
             if current_value:
+                continue
                 print(f"Text input '{label}' already filled with '{current_value}'. Skipping.")
             else:
                 answer = "2"  # Default fallback
@@ -380,7 +388,7 @@ def answer_questions(modal: WebElement, questions_list: set, driver) -> set:
 
                 text_input.clear()
                 text_input.send_keys(answer)
-                print(f"Entered '{answer}' for text input '{label}'")
+                # print(f"Entered '{answer}' for text input '{label}'")
                 questions_list.add((label, answer, "text"))
             continue
 

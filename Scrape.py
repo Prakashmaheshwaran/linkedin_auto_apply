@@ -74,12 +74,15 @@ try:
 
             driver.get(url)
 
-            h1b_links = collect_jobs(driver, filter_h1b=True)
+            h1b_links = collect_jobs(driver, filter_h1b=False)
             total_h1b_links.extend(h1b_links)
 
             save_to_csv(current_run_csv, h1b_links, mode="a")
 
-            if len(h1b_links) < 1:
+            if start > guess_count:
+                break
+
+            if len(h1b_links) < 10:
                 print(f"Fewer than 1 jobs found on page with start={start}. Stopping pagination for role '{role}'.")
                 break
 

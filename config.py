@@ -1,33 +1,62 @@
 # ---------------- General Settings -------------------
 # Increase this if the internet is slow
-additional_time = 0
+additional_time = 2
 
 current_run_csv = "./CSV/collected_links_run.csv"
 processed_id_CSV = "./CSV/processed_id.csv"
 external_URL_csv = "./CSV/external_URL.csv"
 default_resume_path = "./Resumes/default/master-resume.pdf"
-generated_resume_path = "./Resume/taylored-resume.pdf"
+generated_resume_path = "./Resumes/taylored-resume.pdf"
 
+guess_count = 75
 # If you need a custom resume and cover letter
-RESUME_WEBHOOK_URL = "https://make.com/webhook/cf8846b6-21c3-4c0f-9276-4dcbf4a5da8f"
+RESUME_WEBHOOK_URL = "https://auto.dynoxglobal.com/webhook/cf8846b6-21c3-4c0f-9276-4dcbf4a5da8f"
 
-chrome_user_data_dir = r"C:\Users\user\AppData\Local\Google\Chrome\User Data\Profile 3"
+chrome_user_data_dir = r"C:\Users\prakash\AppData\Local\Google\Chrome\User Data\Profile 3"
 chrome_profile_directory = "Profile 3"
 # ---------------- Query and Roles Settings -------------------
 # Add the Filter You want to apply here
 query_params = (
-    # "?distance=25"
-    "?f_E=1,2,3"  # Experience levels: Entry level, Associate, and Mid-Senior
-    "&f_TPR=r86400"  # r86400 - 24 hours, r604800 - 1 week
+    "?distance=100"
+    "&f_LF=f_AL"
+    "&f_E=1,2,3"  # Experience levels: Entry level, Associate, and Mid-Senior
+    "&f_TPR=r604800"  # r86400 - 24 hours, r604800 - 1 week
     "&geoId=103644278"  # United States
     "&sortBy=DD"  # Sort by Date Posted
 )
 
 # Add The roles You want to update here
 roles = [
-    "Machine Learning Summer 2025 Intern ",
+    "Machine Learning Summer 2025 Intern",
     "AI Summer 2025 Intern",
-    "Data Analyst Summer 2025 Intern"
+    "Data Analyst Summer 2025 Intern",
+    "Software Engineer Summer 2025 Intern",
+    "Data Scientist Summer 2025 Intern",
+    "Backend Developer Summer 2025 Intern",
+    "Frontend Developer Summer 2025 Intern",
+    "Full Stack Developer Summer 2025 Intern",
+    "Cybersecurity Summer 2025 Intern",
+    "Cloud Engineer Summer 2025 Intern",
+    "DevOps Summer 2025 Intern",
+    "Artificial Intelligence Research Intern Summer 2025",
+    "Deep Learning Summer 2025 Intern",
+    "Natural Language Processing Summer 2025 Intern",
+    "Business Analyst Summer 2025 Intern",
+    "Data Engineer Summer 2025 Intern",
+    "Software Development Engineer Summer 2025 Intern",
+    "Mobile App Developer Summer 2025 Intern",
+    "Computer Vision Summer 2025 Intern",
+    "Robotics Summer 2025 Intern",
+    "Embedded Systems Summer 2025 Intern",
+    "Autonomous Systems Summer 2025 Intern",
+    # "Product Manager Summer 2025 Intern",
+    "Web Developer Summer 2025 Intern",
+    "Game Developer Summer 2025 Intern",
+    "AI Product Development Intern Summer 2025",
+    "AI Software Engineer Intern Summer 2025",
+    "Cloud Solutions Summer 2025 Intern",
+    "IT Support Summer 2025 Intern",
+    "Research Scientist Summer 2025 Intern"
 ]
 
 # Blocked companies and keywords
@@ -35,7 +64,7 @@ BLOCKED_COMPANY_NAMES = ["Revature", "ExampleCompany1", "ExampleCompany2"]
 BLOCKED_DESCRIPTION_WORDS = [
     "internship unpaid",
     "training required",
-    "visa sponsorship not available",
+    # "visa sponsorship not available",
     "US Citizen",
     "USA Citizen",
     "No C2C",
