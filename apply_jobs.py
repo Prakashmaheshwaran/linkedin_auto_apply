@@ -137,35 +137,6 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
         print(f"Job ID {job_id}: Error during Easy Apply process: {e}")
     return False
 
-# Handles External Apply button actions
-def handle_external_apply(driver, job_id):
-    try:
-        external_apply_button = driver.find_element(
-            By.XPATH, ".//button[contains(@class,'jobs-apply-button') and not(contains(@aria-label, 'Easy'))]"
-        )
-        if external_apply_button:
-            external_apply_button.click()
-            random_wait(2, 4)
-
-            original_window = driver.current_window_handle
-            new_window = [window for window in driver.window_handles if window != original_window][0]
-            driver.switch_to.window(new_window)
-            external_url = driver.current_url
-
-            with open(external_URL_csv, "a", newline='', encoding="utf-8") as file:
-                writer = csv.writer(file)
-                writer.writerow([external_url])
-
-            print(f"Job ID {job_id}: External Apply URL saved: {external_url}")
-            driver.close()
-            driver.switch_to.window(original_window)
-
-            log_processed_id(processed_id_CSV, job_id)
-            return True
-    except Exception as e:
-        print(f"Job ID {job_id}: External Apply button not found. Error: {e}")
-    return False
-
 
 # Main script to process job IDs
 def main():
@@ -196,17 +167,12 @@ def main():
                 easy_apply_button = driver.find_element(By.XPATH, ".//button[contains(@class,'jobs-apply-button') and contains(@aria-label, 'Easy')]")
                 if easy_apply_button:
                     handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}")
+                else:
+                    print(f"Job ID {job_id}: Easy Apply button not found. Skipping...")
+                    log_processed_id(processed_id_CSV, job_id)
             except Exception as e:
-                print("error while appling easy apply.......")
-
-            # if handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}"):
-            #     continue
-
-            # if handle_external_apply(driver, job_id):
-            #     continue
-
-            print(f"Job ID {job_id}: No apply buttons found. Skipping...")
-            log_processed_id(processed_id_CSV, job_id)
+                print(f"Job ID {job_id}: Error while checking for Easy Apply: {e}")
+                log_processed_id(processed_id_CSV, job_id)
 
     except Exception as e:
         print(f"An error occurred: {e}")

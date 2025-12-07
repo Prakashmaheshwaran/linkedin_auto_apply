@@ -83,6 +83,8 @@ htmlcov/
 CSV/
 *.xlsx
 *.xls
+*.db
+*.db.backup*
 
 # Generated Resumes (PDFs)
 # Keeping master-resume.pdf might be desired, but user asked to ignore generated files.

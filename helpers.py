@@ -2,7 +2,6 @@ import csv, re, random, pyautogui, time, os, requests
 import numpy as np
 from time import sleep
 from config import *
-from helpers import *
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -16,8 +15,8 @@ from selenium.common.exceptions import (NoSuchElementException,ElementClickInter
 # The driver bypasses automation detection and enables options for smooth execution
 def setup_driver():
     options = uc.ChromeOptions()
-    options.add_argument(f"--user-data-dir={chrome_user_data_dir}")
-    options.add_argument(f"--profile-directory={chrome_profile_directory}")
+    # options.add_argument(f"--user-data-dir={chrome_user_data_dir}")
+    # options.add_argument(f"--profile-directory={chrome_profile_directory}")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-infobars")
     options.add_argument("--start-maximized")
@@ -25,7 +24,7 @@ def setup_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, version_main=142)
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {
@@ -36,7 +35,19 @@ def setup_driver():
             """
         },
     )
-    print("Driver has been successfully initiated with Profile 3.")
+    print("Driver initiated with guest profile. Waiting for user login...")
+
+    driver.get("https://www.linkedin.com/login")
+    
+    # Wait for user to manually login
+    try:
+        WebDriverWait(driver, 300).until(
+            EC.url_contains("feed")
+        )
+        print("Login detected! Proceeding with automation...")
+    except Exception:
+        print("Login timed out or failed. Please login manually.")
+
     return driver
 
 # Pauses execution for a random amount of time between min_time and max_time
@@ -79,89 +90,29 @@ def mimic_mouse_scroll(scroll_amount=-500, duration=0.5, repetitions=10, target_
 
 # Saves extracted job IDs to a CSV file while ensuring duplicates are avoided
 def save_to_csv(file_path, data, mode="a"):
-    if not data:
-        print("No data to save to CSV. Skipping...")
-        return
-
-    try:
-        extracted_ids = [extract_job_id(item) for item in data if extract_job_id(item)]
-
-        if not extracted_ids:
-            print("No valid job IDs to save.")
-            return
-
-        with open(file_path, mode, newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            for job_id in set(extracted_ids):  # Avoid duplicates using a set
-                writer.writerow([job_id])
-
-        print(f"Data successfully saved to {file_path}. Total saved: {len(extracted_ids)}")
-    except Exception as e:
-        print(f"Error saving data to {file_path}: {e}")
+    # Legacy function - no longer used with JobTracker
+    pass
 
 # Removes duplicate entries from a CSV file and keeps only unique rows
 def remove_duplicates_from_csv(file_path):
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            rows = file.readlines()
-
-        unique_rows = list(dict.fromkeys(rows))  # Remove duplicates while preserving order
-
-        with open(file_path, "w", encoding="utf-8") as file:
-            file.writelines(unique_rows)
-
-        print(f"Duplicates removed from {file_path}. Total unique entries: {len(unique_rows)}")
-    except FileNotFoundError:
-        print(f"File {file_path} not found. Nothing to clean.")
-    except Exception as e:
-        print(f"Error cleaning duplicates in {file_path}: {e}")
+    # Legacy function - no longer used with JobTracker
+    pass
 
 # Reads job IDs from a CSV file and returns a list of valid job IDs
 def read_job_ids_from_csv(file_path):
-    job_ids = []
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if row and row[0].strip():  # Ensure the row is not empty
-                    job_ids.append(row[0].strip())
-                else:
-                    print(f"Skipped invalid or empty row: {row}")
-        print(f"Loaded {len(job_ids)} valid job IDs from {file_path}")
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_path}. Please check the file path.")
-    except Exception as e:
-        print(f"Error reading job IDs from {file_path}: {e}")
-    return job_ids
+    # Legacy function - no longer used with JobTracker
+    return []
 
 # Log processed job IDs into a CSV file
 def log_processed_id(file_path,job_id):
-    with open(file_path, "a", newline='', encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow([job_id])
+    # Legacy function - no longer used with JobTracker
+    pass
+
 # Filter out already processed job IDs from the current run list
 def filter_unprocessed_ids(current_run_list_csv, processed_id_csv):
-    try:
-        with open(processed_id_csv, "r", encoding="utf-8") as processed_file:
-            processed_reader = csv.reader(processed_file)
-            processed_ids = {row[0] for row in processed_reader}
+    # Legacy function - no longer used with JobTracker
+    pass
 
-        with open(current_run_list_csv, "r", encoding="utf-8") as current_file:
-            current_reader = csv.reader(current_file)
-            current_ids = [row[0] for row in current_reader if row]
-
-        unprocessed_ids = [job_id for job_id in current_ids if job_id not in processed_ids]
-
-        with open(current_run_list_csv, "w", newline='', encoding="utf-8") as current_file:
-            writer = csv.writer(current_file)
-            for job_id in unprocessed_ids:
-                writer.writerow([job_id])
-
-        print(f"Filtered current run list. Remaining unprocessed IDs: {len(unprocessed_ids)}")
-
-    except Exception as e:
-        print(f"Error filtering unprocessed IDs: {e}")
-        
 # Extracts the job ID (number) from a LinkedIn job URL
 def extract_job_id(url):
     try:

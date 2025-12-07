@@ -1,10 +1,9 @@
+import os
+
 # ---------------- General Settings -------------------
 # Increase this if the internet is slow
 additional_time = 2
 
-current_run_csv = "./CSV/collected_links_run.csv"
-processed_id_CSV = "./CSV/processed_id.csv"
-external_URL_csv = "./CSV/external_URL.csv"
 default_resume_path = "./Resumes/default/master-resume.pdf"
 generated_resume_path = "./Resumes/taylored-resume.pdf"
 
@@ -12,8 +11,14 @@ guess_count = 75
 # If you need a custom resume and cover letter
 RESUME_WEBHOOK_URL = "https://auto.dynoxglobal.com/webhook/cf8846b6-21c3-4c0f-9276-4dcbf4a5da8f"
 
-chrome_user_data_dir = r"C:\Users\prakash\AppData\Local\Google\Chrome\User Data\Profile 3"
-chrome_profile_directory = "Profile 3"
+# ---------------- Browser Settings -------------------
+# Path to your Chrome User Data directory.
+# MacOS example: "/Users/yourname/Library/Application Support/Google/Chrome"
+# Windows example: r"C:\Users\yourname\AppData\Local\Google\Chrome\User Data"
+# chrome_user_data_dir = os.path.expanduser("~/Library/Application Support/Google/Chrome") 
+
+# Profile directory name. Use "Default" for the main profile, or "Profile 1", "Profile 2", etc.
+# chrome_profile_directory = "Default"
 # ---------------- Query and Roles Settings -------------------
 # Add the Filter You want to apply here
 query_params = (
