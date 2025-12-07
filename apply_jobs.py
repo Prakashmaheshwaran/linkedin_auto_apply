@@ -35,33 +35,73 @@ def process_job_criteria(job_id, company_name, job_description):
         return False, "Processing Error"
 
 
+# Safely closes the Easy Apply modal if it's stuck open
+def discard_modal(driver):
+    try:
+        # Check if modal is present
+        modal = driver.find_elements(By.CLASS_NAME, "jobs-easy-apply-modal")
+        if modal:
+            print("Modal detected. Attempting to discard...")
+            
+            # Try clicking the 'Dismiss' X button
+            try:
+                dismiss_button = driver.find_element(By.XPATH, "//button[@aria-label='Dismiss']")
+                dismiss_button.click()
+                random_wait(1, 2)
+            except:
+                pass
+            
+            # Try clicking 'Discard' in the confirmation dialog if it appears
+            try:
+                discard_button = driver.find_element(By.XPATH, "//button[@data-control-name='discard_application_confirm_btn']")
+                discard_button.click()
+                print("Clicked 'Discard' confirmation.")
+                random_wait(1, 2)
+            except:
+                pass
+                
+            # If still open, try ESC key
+            try:
+                webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                random_wait(1, 2)
+            except:
+                pass
+                
+            print("Modal discard attempt finished.")
+    except Exception as e:
+        print(f"Error discarding modal: {e}")
+
 # Extracts company name, job Title and job description from the job page
 def extract_job_details(driver, job_id):
     company_name, job_title, job_description = "Unknown", "Unknown", "Unknown"
 
     try:
-        # Company Name XPath
-        company_name = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'job-details-jobs-unified-top-card__company-name')]//a"))
+        # Company Name XPath - Flexible for both views
+        # Search for either the standard class or side-panel class
+        company_name = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'job-details-jobs-unified-top-card__company-name')]//a | //a[contains(@class,'job-card-container__company-name')]"))
         ).text.strip()
     except Exception:
-        print(f"Job ID {job_id}: Company name not found.")
+        # print(f"Job ID {job_id}: Company name not found.")
+        pass
 
     try:
-        # Job Title XPath
-        job_title = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'job-details-jobs-unified-top-card__job-title')]//h1"))
+        # Job Title XPath - Flexible for h1 (full page) or h2 (side panel)
+        job_title = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'job-details-jobs-unified-top-card__job-title')]//h1 | //div[contains(@class,'job-details-jobs-unified-top-card__job-title')]//a | //h2[contains(@class, 'job-details-jobs-unified-top-card__job-title')]"))
         ).text.strip()
     except Exception:
-        print(f"Job ID {job_id}: Job title not found.")
+        # print(f"Job ID {job_id}: Job title not found.")
+        pass
 
     try:
-        # Job Description XPath
-        job_description = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'jobs-description-content__text--stretch')]"))
+        # Job Description XPath - Flexible
+        job_description = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'jobs-description-content__text--stretch')] | //div[contains(@class,'jobs-description__content')] | //div[@id='job-details']"))
         ).text.strip()
     except Exception:
-        print(f"Job ID {job_id}: Job description not found.")
+        # print(f"Job ID {job_id}: Job description not found.")
+        pass
 
     if company_name == "Unknown" and job_title == "Unknown" and job_description == "Unknown":
         print(f"Job ID {job_id}: All details missing. Skipping...")
@@ -77,23 +117,41 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
     """
     try:
         # Step 1: Locate Easy Apply button
-        easy_apply_button = driver.find_element(
-            By.XPATH, ".//button[contains(@class,'jobs-apply-button') and contains(@aria-label, 'Easy')]"
-        )
+        # Use a more generic wait to ensure we find it in side panel
+        try:
+            easy_apply_button = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, ".//button[contains(@class,'jobs-apply-button') and contains(@aria-label, 'Easy')]"))
+            )
+        except:
+            easy_apply_button = None
+
         if easy_apply_button:
             print(f"Job ID {job_id}: Easy Apply button found.")
-            easy_apply_button.click()
+            # Scroll to it
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", easy_apply_button)
+            time.sleep(1)
+            
+            try:
+                easy_apply_button.click()
+            except:
+                # Force click if intercepted
+                driver.execute_script("arguments[0].click();", easy_apply_button)
+                
             random_wait(2, 4)
-            log_processed_id(processed_id_CSV, job_id)
+            # log_processed_id(processed_id_CSV, job_id) # Removed legacy logging
         else:
             print(f"Job ID {job_id}: Easy Apply button not found.")
             return False
 
         # Step 2: Wait for modal to load
-        modal = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "jobs-easy-apply-modal"))
-        )
-        print(f"Job ID {job_id}: Easy Apply modal loaded successfully.")
+        try:
+            modal = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "jobs-easy-apply-modal"))
+            )
+            print(f"Job ID {job_id}: Easy Apply modal loaded successfully.")
+        except:
+            print(f"Job ID {job_id}: Modal did not appear.")
+            return False
 
         button_status, is_submit = handle_application_buttons(driver, modal)
         print(f"Job ID {job_id}: Button clicked - {button_status}")
@@ -101,13 +159,16 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
 
         if is_submit:
             print(f"Job ID {job_id}: Application submitted successfully!")
+            random_wait(2, 4)
+            discard_modal(driver) # Close the success modal
             return True
 
         # Step 3: Upload Resume
         resume_path = fetch_resume_from_webhook(job_url,job_details)
         if not upload_resume(driver, resume_path):
             print(f"Job ID {job_id}: Failed to upload resume. Aborting...")
-            return True
+            discard_modal(driver) # Close modal on failure
+            return False # Changed from True to False to indicate failure
         
         print(f"Job ID {job_id}: Resume uploaded successfully.")
         random_wait(2, 4)
@@ -123,18 +184,30 @@ def handle_easy_apply(driver, job_id, job_url, job_details):
 
                 if is_submit:
                     print(f"Job ID {job_id}: Application submitted successfully!")
+                    random_wait(2, 4)
+                    discard_modal(driver) # Close the success modal
                     return True
 
-                # Answer questions dynamically
-                answer_questions(modal, answered_questions, driver)
-                # print(f"Job ID {job_id}: Questions answered - {answered_questions}")
+                # Check if we are stuck (no button found, loop might happen)
+                if button_status == "No Button Found":
+                     # Answer questions dynamically
+                    answer_questions(modal, answered_questions, driver)
+                    
+                    # Try finding button again after answering
+                    button_status, is_submit = handle_application_buttons(driver, modal)
+                    if button_status == "No Button Found":
+                        print("Stuck: No next button and questions answered. Aborting.")
+                        discard_modal(driver)
+                        return False
 
             except Exception as e:
                 print(f"Job ID {job_id}: Error processing application flow: {e}")
+                discard_modal(driver)
                 return False
 
     except Exception as e:
         print(f"Job ID {job_id}: Error during Easy Apply process: {e}")
+        discard_modal(driver)
     return False
 
 

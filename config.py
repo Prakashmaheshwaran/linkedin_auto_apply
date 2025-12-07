@@ -4,6 +4,9 @@ import os
 # Increase this if the internet is slow
 additional_time = 2
 
+# Cookie storage path
+cookies_path = "cookies.pkl"
+
 default_resume_path = "./Resumes/default/master-resume.pdf"
 generated_resume_path = "./Resumes/taylored-resume.pdf"
 

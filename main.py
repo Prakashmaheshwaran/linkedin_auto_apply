@@ -42,62 +42,90 @@ def main():
                     if not job_listings:
                         print("No jobs found on this page.")
                         break
-                        
-                    current_page_job_ids = []
                     
-                    for job in job_listings:
-                        try:
-                            job_url = job.find_element(By.XPATH, ".//a[@href]").get_attribute("href")
-                            job_id = extract_job_id(job_url)
-                            if job_id:
-                                current_page_job_ids.append(job_id)
-                                # Add to tracker as COLLECTED if not exists
-                                tracker.add_job(job_id, status="COLLECTED")
-                        except Exception as e:
-                            print(f"Error extracting job URL: {e}")
-                            
-                    print(f"Found {len(current_page_job_ids)} jobs on this page. Starting application process...")
+                    print(f"Found {len(job_listings)} jobs on this page. Starting application process...")
                     
-                    # Apply to jobs found on this page immediately
-                    for job_id in current_page_job_ids:
-                        # Check if already processed using JobTracker
-                        if tracker.is_processed(job_id):
-                            print(f"Job ID {job_id} already processed. Skipping.")
-                            continue
-                            
-                        print(f"Processing Job ID: {job_id}")
-                        job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
-                        driver.get(job_url)
-                        random_wait(2, 5)
-                        
-                        company_name, job_title, job_description = extract_job_details(driver, job_id)
-
-                        if company_name == "Unknown" or job_description == "Unknown":
-                            tracker.update_job(job_id, "FAILED")
-                            continue
-
-                        suitable, reason = process_job_criteria(job_id, company_name, job_description)
-                        if not suitable:
-                            tracker.update_job(job_id, "SKIPPED")
-                            continue
-
+                    # Iterate through job cards directly
+                    for job_card in job_listings:
                         try:
-                            easy_apply_button = driver.find_element(By.XPATH, ".//button[contains(@class,'jobs-apply-button') and contains(@aria-label, 'Easy')]")
-                            if easy_apply_button:
-                                success = handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}")
-                                if success:
-                                    tracker.update_job(job_id, "APPLIED")
+                            # Extract Job ID
+                            job_id = job_card.get_attribute("data-occludable-job-id")
+                            if not job_id:
+                                # Try finding from anchor
+                                try:
+                                    link = job_card.find_element(By.XPATH, ".//a[@href]")
+                                    job_id = extract_job_id(link.get_attribute("href"))
+                                except:
+                                    pass
+                            
+                            if not job_id:
+                                continue
+
+                            # Add to tracker as COLLECTED if not exists
+                            tracker.add_job(job_id, status="COLLECTED")
+                            
+                            # Check if already processed using JobTracker
+                            if tracker.is_processed(job_id):
+                                print(f"Job ID {job_id} already processed. Skipping.")
+                                continue
+                                
+                            print(f"Processing Job ID: {job_id}")
+                            
+                            # Click the job card to load details in side panel
+                            try:
+                                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", job_card)
+                                time.sleep(1)
+                                job_card.click()
+                                random_wait(2, 4) # Wait for side panel to update
+                            except Exception as e:
+                                print(f"Could not click job card {job_id}: {e}")
+                                continue
+
+                            # Extract details from the side panel
+                            # We use the same extract function which now has updated XPaths
+                            company_name, job_title, job_description = extract_job_details(driver, job_id)
+
+                            if company_name == "Unknown" or job_description == "Unknown":
+                                # Don't mark as FAILED immediately, maybe just skip or retry?
+                                # tracker.update_job(job_id, "FAILED")
+                                print(f"Job ID {job_id}: Could not extract details. Skipping.")
+                                continue
+
+                            suitable, reason = process_job_criteria(job_id, company_name, job_description)
+                            if not suitable:
+                                tracker.update_job(job_id, "SKIPPED")
+                                continue
+
+                            # Attempt Easy Apply
+                            try:
+                                # Check for Easy Apply button
+                                easy_apply_button = None
+                                try:
+                                    easy_apply_button = driver.find_element(By.XPATH, ".//button[contains(@class,'jobs-apply-button') and contains(@aria-label, 'Easy')]")
+                                except:
+                                    pass
+                                    
+                                if easy_apply_button:
+                                    job_url = f"https://www.linkedin.com/jobs/view/{job_id}/" # For resume fetching logic
+                                    success = handle_easy_apply(driver, job_id, job_url, job_details = f"job title: {job_title}\njob description:{job_description}")
+                                    if success:
+                                        tracker.update_job(job_id, "APPLIED")
+                                    else:
+                                        tracker.update_job(job_id, "FAILED")
                                 else:
-                                    tracker.update_job(job_id, "FAILED")
-                            else:
-                                print(f"Job ID {job_id}: Easy Apply button not found. Skipping...")
-                                tracker.update_job(job_id, "EXTERNAL")
+                                    print(f"Job ID {job_id}: Easy Apply button not found. Skipping...")
+                                    tracker.update_job(job_id, "EXTERNAL")
+                            except Exception as e:
+                                print(f"Job ID {job_id}: Error while checking for Easy Apply: {e}")
+                                tracker.update_job(job_id, "FAILED")
+                                
+                        except StaleElementReferenceException:
+                            print("Stale element reference. Skipping job card.")
+                            continue
                         except Exception as e:
-                            print(f"Job ID {job_id}: Error while checking for Easy Apply: {e}")
-                            tracker.update_job(job_id, "FAILED")
-                            
-                        # Navigate back to search page to continue (optional, but safer to just reload url in next loop iteration)
-                        
+                            print(f"Error processing job card: {e}")
+                            continue
+
                     if start > guess_count:
                         break
                         

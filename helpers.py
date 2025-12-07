@@ -1,4 +1,4 @@
-import csv, re, random, pyautogui, time, os, requests
+import csv, re, random, pyautogui, time, os, requests, pickle
 import numpy as np
 from time import sleep
 from config import *
@@ -35,20 +35,64 @@ def setup_driver():
             """
         },
     )
-    print("Driver initiated with guest profile. Waiting for user login...")
+    print("Driver initiated with guest profile.")
 
-    driver.get("https://www.linkedin.com/login")
+    driver.get("https://www.linkedin.com")
     
-    # Wait for user to manually login
+    # Attempt to load cookies
+    if load_cookies(driver):
+        print("Cookies loaded. Refreshing...")
+        driver.refresh()
+        random_wait(2, 4)
+    
+    # Wait for user to manually login if not already logged in
     try:
-        WebDriverWait(driver, 300).until(
-            EC.url_contains("feed")
-        )
-        print("Login detected! Proceeding with automation...")
+        if "feed" in driver.current_url:
+             print("Already logged in via cookies! Proceeding...")
+        else:
+             print("Not logged in. Waiting for manual login...")
+             driver.get("https://www.linkedin.com/login")
+             WebDriverWait(driver, 300).until(
+                EC.url_contains("feed")
+             )
+             print("Login detected! Saving cookies...")
+             save_cookies(driver)
+             print("Proceeding with automation...")
     except Exception:
         print("Login timed out or failed. Please login manually.")
 
     return driver
+
+# Save cookies to file
+def save_cookies(driver):
+    try:
+        cookies = driver.get_cookies()
+        with open(cookies_path, "wb") as f:
+            pickle.dump(cookies, f)
+        print(f"Cookies saved to {cookies_path}")
+    except Exception as e:
+        print(f"Error saving cookies: {e}")
+
+# Load cookies from file
+def load_cookies(driver):
+    try:
+        if os.path.exists(cookies_path):
+            with open(cookies_path, "rb") as f:
+                cookies = pickle.load(f)
+            
+            # Add cookies to driver
+            for cookie in cookies:
+                try:
+                    driver.add_cookie(cookie)
+                except Exception as e:
+                    # Sometimes adding specific cookies fails if domains don't match exactly
+                    pass
+            return True
+        else:
+            print("No cookie file found.")
+    except Exception as e:
+        print(f"Error loading cookies: {e}")
+    return False
 
 # Pauses execution for a random amount of time between min_time and max_time
 # Includes small optional jitter for human-like delays and adds configurable additional time

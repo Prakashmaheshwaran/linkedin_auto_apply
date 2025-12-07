@@ -6,6 +6,9 @@ Desktop.ini
 .directory
 .Trash-*
 
+# cookies.pkl
+cookies.pkl
+
 # IDE / Editor
 .vscode/
 .idea/
